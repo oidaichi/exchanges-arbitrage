@@ -1,4 +1,5 @@
-from arbitrage.public_markets._binance import Binance
+# from arbitrage.public_markets._binance import Binance
+from public_markets._binance import Binance
 
 
 class BinanceUSD(Binance):

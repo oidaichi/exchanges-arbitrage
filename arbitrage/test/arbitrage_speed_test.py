@@ -4,7 +4,8 @@ sys.path.append("../")
 import json
 import arbitrage
 import time
-from arbitrage.observers import observer
+# from arbitrage.observers import observer
+from observers import observer
 
 
 class TestObserver(observer.Observer):

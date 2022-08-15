@@ -3,7 +3,8 @@ import urllib.error
 import urllib.parse
 import json
 import sys
-from arbitrage.public_markets.market import Market
+# from arbitrage.public_markets.market import Market
+from public_markets.market import Market
 
 
 class Bitstamp(Market):

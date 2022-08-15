@@ -6,8 +6,10 @@ import sys
 import glob
 import os
 import inspect
-from arbitrage.arbitrer import Arbitrer
-from arbitrage import public_markets
+# from arbitrage.arbitrer import Arbitrer
+# from arbitrage import public_markets
+from arbitrer import Arbitrer
+import public_markets
 
 
 class ArbitrerCLI:
@@ -20,18 +22,20 @@ class ArbitrerCLI:
         logging.addLevelName(logging.VERBOSE, "VERBOSE")
 
     def exec_command(self, args):
-        if "watch" in args.command:
-            self.create_arbitrer(args)
-            self.arbitrer.loop()
-        if "replay-history" in args.command:
-            self.create_arbitrer(args)
-            self.arbitrer.replay_history(args.replay_history)
-        if "get-balance" in args.command:
-            self.get_balance(args)
-        if "list-public-markets" in args.command:
-            self.list_markets()
-        if "generate-config" in args.command:
-            self.generate_sample_config()
+        self.create_arbitrer(args)
+        self.arbitrer.loop()
+        # if "watch" in args.command:
+        #     self.create_arbitrer(args)
+        #     self.arbitrer.loop()
+        # if "replay-history" in args.command:
+        #     self.create_arbitrer(args)
+        #     self.arbitrer.replay_history(args.replay_history)
+        # if "get-balance" in args.command:
+        #     self.get_balance(args)
+        # if "list-public-markets" in args.command:
+        #     self.list_markets()
+        # if "generate-config" in args.command:
+        #     self.generate_sample_config()
 
     def get_market_list(self):
         markets = []

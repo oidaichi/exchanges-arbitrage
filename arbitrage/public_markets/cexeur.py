@@ -1,4 +1,5 @@
-from arbitrage.public_markets._cex import CEX
+# from arbitrage.public_markets._cex import CEX
+from public_markets._cex import CEX
 
 
 class CEXEUR(CEX):

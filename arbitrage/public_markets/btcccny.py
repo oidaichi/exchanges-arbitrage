@@ -1,4 +1,5 @@
-from arbitrage.public_markets._btcc import BTCC
+# from arbitrage.public_markets._btcc import BTCC
+from public_markets._btcc import BTCC
 
 
 class BTCCCNY(BTCC):

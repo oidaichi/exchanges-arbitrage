@@ -3,7 +3,8 @@ import sys
 sys.path.append("../")
 import unittest
 
-from arbitrage import arbitrer
+# from arbitrage import arbitrer
+import arbitrer
 
 depths1 = {
     "BitstampEUR": {

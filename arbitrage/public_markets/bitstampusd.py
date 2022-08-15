@@ -1,4 +1,5 @@
-from arbitrage.public_markets._bitstamp import Bitstamp
+# from arbitrage.public_markets._bitstamp import Bitstamp
+from public_markets._bitstamp import Bitstamp
 
 
 class BitstampUSD(Bitstamp):

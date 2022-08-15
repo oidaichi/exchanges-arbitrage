@@ -12,9 +12,10 @@ import urllib.parse
 import hashlib
 import sys
 import json
-from arbitrage import config
-from arbitrage.private_markets.market import Market, TradeException
-
+# from arbitrage import config
+# from arbitrage.private_markets.market import Market, TradeException
+import config
+from private_markets.market import Market, TradeException
 
 class PrivateBitstampUSD(Market):
     balance_url = "https://www.bitstamp.net/api/balance/"

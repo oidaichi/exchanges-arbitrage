@@ -1,4 +1,5 @@
-from arbitrage.observers.observer import Observer
+#from arbitrage.observers.observer import Observer
+from observers.observer import Observer
 import json
 import time
 import os

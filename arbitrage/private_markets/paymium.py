@@ -10,8 +10,10 @@ import urllib.parse
 import hashlib
 import sys
 import json
-from arbitrage import config
-from arbitrage.private_markets.market import Market
+# from arbitrage import config
+# from arbitrage.private_markets.market import Market
+import config
+from private_markets.market import Market
 
 
 class PrivatePaymium(Market):

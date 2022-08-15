@@ -4,9 +4,12 @@ import time
 import logging
 import json
 from concurrent.futures import ThreadPoolExecutor, wait
-from arbitrage import public_markets
-from arbitrage import observers
-from arbitrage import config
+# from arbitrage import public_markets
+# from arbitrage import observers
+# from arbitrage import config
+import public_markets
+import observers
+import config
 
 
 class Arbitrer(object):
@@ -23,9 +26,9 @@ class Arbitrer(object):
         self.market_names = markets
         for market_name in markets:
             try:
-                exec("import arbitrage.public_markets." + market_name.lower())
+                exec("import public_markets." + market_name.lower())
                 market = eval(
-                    "arbitrage.public_markets." + market_name.lower() + "." + market_name + "()"
+                    "public_markets." + market_name.lower() + "." + market_name + "()"
                 )
                 self.markets.append(market)
             except (ImportError, AttributeError) as e:
@@ -38,9 +41,9 @@ class Arbitrer(object):
         self.observer_names = _observers
         for observer_name in _observers:
             try:
-                exec("import arbitrage.observers." + observer_name.lower())
+                exec("import observers." + observer_name.lower())
                 observer = eval(
-                    "arbitrage.observers." + observer_name.lower() + "." + observer_name + "()"
+                    "observers." + observer_name.lower() + "." + observer_name + "()"
                 )
                 self.observers.append(observer)
             except (ImportError, AttributeError) as e:
@@ -158,6 +161,7 @@ class Arbitrer(object):
         depths = {}
         futures = []
         for market in self.markets:
+            # submitは第一引数で並列実行する関数を指定、第二、第三引数は第一引数の関数に渡す引数。
             futures.append(self.threadpool.submit(self.__get_market_depth, market, depths))
         wait(futures, timeout=20)
         return depths

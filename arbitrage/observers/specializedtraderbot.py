@@ -1,10 +1,15 @@
 import logging
 import time
-from arbitrage.observers.observer import Observer
-from arbitrage.private_markets import bitstampusd
-from arbitrage.private_markets import paymium
-from arbitrage.observers.emailer import send_email
-from arbitrage import config
+# from arbitrage.observers.observer import Observer
+# from arbitrage.private_markets import bitstampusd
+# from arbitrage.private_markets import paymium
+# from arbitrage.observers.emailer import send_email
+# from arbitrage import config
+from observers.observer import Observer
+from private_markets import bitstampusd
+from private_markets import paymium
+from observers.emailer import send_email
+import config
 
 
 class SpecializedTraderBot(Observer):

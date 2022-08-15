@@ -1,4 +1,5 @@
-from arbitrage.public_markets._bitfinex import Bitfinex
+# from arbitrage.public_markets._bitfinex import Bitfinex
+from public_markets._bitfinex import Bitfinex
 
 
 class BitfinexEUR(Bitfinex):

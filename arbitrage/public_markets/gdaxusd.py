@@ -1,4 +1,5 @@
-from arbitrage.public_markets._gdax import GDAX
+# from arbitrage.public_markets._gdax import GDAX
+from public_markets._gdax import GDAX
 
 
 class GDAXUSD(GDAX):

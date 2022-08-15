@@ -4,9 +4,12 @@ import urllib.error
 import urllib.parse
 import logging
 import sys
-from arbitrage import config
-from arbitrage.fiatconverter import FiatConverter
-from arbitrage.utils import log_exception
+# from arbitrage import config
+# from arbitrage.fiatconverter import FiatConverter
+# from arbitrage.utils import log_exception
+import config
+from fiatconverter import FiatConverter
+from utils import log_exception
 
 
 class Market(object):

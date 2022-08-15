@@ -2,9 +2,10 @@ import logging
 import time
 from sleekxmpp import ClientXMPP
 from sleekxmpp.exceptions import IqError, IqTimeout
-from arbitrage.observers.observer import Observer
-from arbitrage import config
-
+# from arbitrage.observers.observer import Observer
+# from arbitrage import config
+from observers.observer import Observer
+import config
 
 class MyXMPPClient(ClientXMPP):
     def __init__(self):

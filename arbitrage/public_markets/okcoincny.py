@@ -1,4 +1,5 @@
-from arbitrage.public_markets._okcoin import OKCoin
+# from arbitrage.public_markets._okcoin import OKCoin
+from public_markets._okcoin import OKCoin
 
 
 class OKCoinCNY(OKCoin):

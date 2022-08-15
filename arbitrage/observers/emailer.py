@@ -1,7 +1,9 @@
 import logging
 import smtplib
-from arbitrage.observers.observer import Observer
-from arbitrage import config
+# from arbitrage.observers.observer import Observer
+# from arbitrage import config
+from observers.observer import Observer
+import config
 
 
 def send_email(subject, message):
