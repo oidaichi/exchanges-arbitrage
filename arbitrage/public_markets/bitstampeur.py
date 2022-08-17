@@ -1,10 +1,12 @@
 # from arbitrage.public_markets._bitstamp import Bitstamp
 from public_markets._bitstamp import Bitstamp
+import config
 
 
 class BitstampEUR(Bitstamp):
     def __init__(self):
-        super().__init__("EUR", "btceur")
+        coin = config.target_coin.lower()
+        super().__init__("EUR", coin+"eur")
 
 
 if __name__ == "__main__":

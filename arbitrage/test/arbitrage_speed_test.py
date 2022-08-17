@@ -8,6 +8,7 @@ import time
 from observers import observer
 
 
+
 class TestObserver(observer.Observer):
     def opportunity(
         self,

@@ -8,7 +8,13 @@ class Observer(object, metaclass=abc.ABCMeta):
     def end_opportunity_finder(self):
         pass
 
+    
     ## abstract
+    '''
+    抽象クラスとはクラスの一種で、次の特徴を持つ抽象的な概念です。
+    1. 専ら他のクラスに継承されることによって使用される。
+    2. インスタンスを持たない。
+    '''
     @abc.abstractmethod
     def opportunity(
         self,
