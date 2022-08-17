@@ -32,8 +32,8 @@ class TraderBot(Observer):
         self.execute_trade(*self.potential_trades[0][1:])
 
     def get_min_tradeable_volume(self, buyprice, usd_bal, btc_bal):
-        min1 = float(usd_bal) / ((1 + config.balance_margin) * buyprice)
-        min2 = float(btc_bal) / (1 + config.balance_margin)
+        min1 = float(usd_bal) / ((1 + config.para[config.target_coin]['balance_margin']) * buyprice)
+        min2 = float(btc_bal) / (1 + config.para[config.target_coin]['balance_margin'])
         return min(min1, min2)
 
     def update_balance(self):
@@ -52,7 +52,8 @@ class TraderBot(Observer):
         weighted_buyprice,
         weighted_sellprice,
     ):
-        if profit < config.profit_thresh or perc < config.perc_thresh:
+        if profit < config.para[config.target_coin]['profit_thresh'] \
+            or perc < config.para[config.target_coin]['perc_thresh']:
             logging.verbose("[TraderBot] Profit or profit percentage lower than" + " thresholds")
             return
         if kask not in self.clients:
@@ -65,18 +66,18 @@ class TraderBot(Observer):
                 "[TraderBot] Can't automate this trade, " + "client not available: %s" % kbid
             )
             return
-        volume = min(config.max_tx_volume, volume)
+        volume = min(config.para[config.target_coin]['max_tx_volume'], volume)
 
         # Update client balance
         self.update_balance()
         max_volume = self.get_min_tradeable_volume(
             buyprice, self.clients[kask].usd_balance, self.clients[kbid].btc_balance
         )
-        volume = min(volume, max_volume, config.max_tx_volume)
-        if volume < config.min_tx_volume:
+        volume = min(volume, max_volume, config.para[config.target_coin]['max_tx_volume'])
+        if volume < config.para[config.target_coin]['min_tx_volume']:
             logging.warn(
                 "Can't automate this trade, minimum volume transaction"
-                + " not reached %f/%f" % (volume, config.min_tx_volume)
+                + " not reached %f/%f" % (volume, config.para[config.target_coin]['min_tx_volume'])
             )
             logging.warn(
                 "Balance on %s: %f USD - Balance on %s: %f BTC"

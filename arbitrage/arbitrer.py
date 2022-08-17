@@ -12,6 +12,7 @@ import observers
 import config
 from datetime import datetime
 from functools import wraps
+import optuna
 
 
 def time_recorder(func):
@@ -41,7 +42,7 @@ class Arbitrer(object):
         self.depths = {}
         self.init_markets(config.markets)
         self.init_observers(config.observers)
-        self.max_tx_volume = config.max_tx_volume
+        self.max_tx_volume = config.para[config.target_coin]['max_tx_volume']
         self.threadpool = ThreadPoolExecutor(max_workers=10)
 
     def init_markets(self, markets):
@@ -146,6 +147,85 @@ class Arbitrer(object):
         profit = sell_total * w_sellprice - buy_total * w_buyprice
         return profit, sell_total, w_buyprice, w_sellprice
     
+    
+    def get_profit_for_optuna(self, maxi, maxj, kask, kbid):
+        '''
+        二つの取引所の間で価格差がある場合に使う。
+        Returnの各値を求めて返す。
+
+        Parameters
+        ----------
+        mi : int
+            maxiのうち、現在処理しているi.
+        mj : int
+            maxjのうち、現在処理しているj.
+        kask : str
+            取引所の名前とUSDなどの通貨。ask側。
+        kbid : str
+            取引所の名前とUSDなどの通貨。bid側。
+
+        Returns
+        -------
+        profit : float
+            利益.
+        sell_total : float
+            売り注文を出す合計注文数.
+        w_buyprice : float
+            板に出ている買い注文数を重みとした購入価格の加重平均.
+        w_sellprice : float
+            板に出ている売り注文数を重みとした購入価格の加重平均.
+
+        '''
+        def objective(trial):
+            mi = trial.suggest_int('mi', 0, maxi)
+            mj = trial.suggest_int('mj', 0, maxj)
+            
+            # ask側の方が価格が高ければ、裁定機会がないのでreturnする。
+            if self.depths[kask]["asks"][mi]["price"] >= self.depths[kbid]["bids"][mj]["price"]:
+                return 0
+            
+            # 板気配とbuy側・sell側・設定した最大値から、購入する最大通貨量を求める
+            max_amount_buy = 0
+            for i in range(mi + 1):
+                max_amount_buy += self.depths[kask]["asks"][i]["amount"]
+            max_amount_sell = 0
+            for j in range(mj + 1):
+                max_amount_sell += self.depths[kbid]["bids"][j]["amount"]
+            max_amount = min(max_amount_buy, max_amount_sell, self.max_tx_volume)
+    
+            buy_total = 0
+            w_buyprice = 0
+            for i in range(mi + 1):
+                price = self.depths[kask]["asks"][i]["price"]
+                amount = min(max_amount, buy_total + self.depths[kask]["asks"][i]["amount"]) - buy_total
+                if amount <= 0:
+                    break
+                buy_total += amount
+                if w_buyprice == 0:
+                    w_buyprice = price
+                else:
+                    w_buyprice = (w_buyprice * (buy_total - amount) + price * amount) / buy_total
+    
+            sell_total = 0
+            w_sellprice = 0
+            for j in range(mj + 1):
+                price = self.depths[kbid]["bids"][j]["price"]
+                amount = (
+                    min(max_amount, sell_total + self.depths[kbid]["bids"][j]["amount"]) - sell_total
+                )
+                if amount < 0:
+                    break
+                sell_total += amount
+                if w_sellprice == 0 or sell_total == 0:
+                    w_sellprice = price
+                else:
+                    w_sellprice = (w_sellprice * (sell_total - amount) + price * amount) / sell_total
+    
+            profit = sell_total * w_sellprice - buy_total * w_buyprice
+            return profit
+        
+        return objective
+    
     # @time_recorder
     def get_max_depth(self, kask, kbid):
         '''
@@ -223,18 +303,28 @@ class Arbitrer(object):
         best_w_buyprice, best_w_sellprice = (0, 0)
         best_volume = 0
         print('maxi:', maxi, 'maxj:', maxj)
-        for i in range(min(maxi + 1, 1500)):
-            for j in range(min(maxj + 1, 1500)):
-        # for i in range(maxi, max(-1, maxi-1000), -1):
-        #     for j in range(maxj, max(-1, maxj-1000), -1):
-                # volumeは売り注文数。買い注文数は返していない。
-                profit, volume, w_buyprice, w_sellprice = self.get_profit_for(i, j, kask, kbid)
-                # 板の注文ごとに利益を求め、最も利益が高くなるパラメータの組み合わせを求める。
-                if profit >= 0 and profit >= best_profit:
-                    best_profit = profit
-                    best_volume = volume
-                    best_i, best_j = (i, j)
-                    best_w_buyprice, best_w_sellprice = (w_buyprice, w_sellprice)
+        if (maxi+1) * (maxj+1) < 1000:
+            for i in range(maxi + 1):
+                for j in range(maxj + 1):
+                    # volumeは売り注文数。買い注文数は返していない。
+                    profit, volume, w_buyprice, w_sellprice = self.get_profit_for(i, j, kask, kbid)
+                    # 板の注文ごとに利益を求め、最も利益が高くなるパラメータの組み合わせを求める。
+                    if profit >= 0 and profit >= best_profit:
+                        best_profit = profit
+                        best_volume = volume
+                        best_i, best_j = (i, j)
+                        best_w_buyprice, best_w_sellprice = (w_buyprice, w_sellprice)
+        else:
+            optuna.logging.set_verbosity(optuna.logging.WARNING)
+            # 最適化の条件設定
+            study =  optuna.create_study(direction="maximize")
+            # 最適化の実行
+            study.optimize(self.get_profit_for_optuna(maxi, maxj, kask, kbid), n_trials=300)
+            print('study.best_params:', study.best_params)
+            best_i, best_j = study.best_params['mi'], study.best_params['mj']
+            best_profit, best_volume, best_w_buyprice, best_w_sellprice = \
+                self.get_profit_for(best_i, best_j, kask, kbid)
+            
         print('best_i:', best_i, 'best_j:', best_j)
         return (
             best_profit,

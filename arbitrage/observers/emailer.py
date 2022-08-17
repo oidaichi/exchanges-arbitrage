@@ -38,7 +38,8 @@ class Emailer(Observer):
         weighted_buyprice,
         weighted_sellprice,
     ):
-        if profit > config.profit_thresh and perc > config.perc_thresh:
+        if profit > config.para[config.target_coin]['profit_thresh'] \
+            and perc > config.para[config.target_coin]['perc_thresh']:
             message = """profit: %f USD with volume: %f BTC
 buy at %.4f (%s) sell at %.4f (%s) ~%.2f%%
 """ % (

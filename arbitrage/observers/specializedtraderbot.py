@@ -36,8 +36,8 @@ class SpecializedTraderBot(Observer):
         self.execute_trade(*self.potential_trades[0][1:])
 
     def get_min_tradeable_volume(self, buyprice, eur_bal, btc_bal):
-        min1 = float(eur_bal) / ((1.0 + config.balance_margin) * buyprice)
-        min2 = float(btc_bal) / (1.0 + config.balance_margin)
+        min1 = float(eur_bal) / ((1.0 + config.para[config.target_coin]['balance_margin']) * buyprice)
+        min2 = float(btc_bal) / (1.0 + config.para[config.target_coin]['balance_margin'])
         return min(min1, min2) * 0.95
 
     def update_balance(self):
@@ -82,11 +82,11 @@ class SpecializedTraderBot(Observer):
         max_volume = self.get_min_tradeable_volume(
             buyprice, self.clients[kask].eur_balance, self.clients[kbid].btc_balance
         )
-        volume = min(volume, max_volume, config.max_tx_volume)
-        if volume < config.min_tx_volume:
+        volume = min(volume, max_volume, config.para[config.target_coin]['max_tx_volume'])
+        if volume < config.para[config.target_coin]['min_tx_volume']:
             logging.warn(
                 "Can't automate this trade, minimum volume transaction not reached %f/%f"
-                % (volume, config.min_tx_volume)
+                % (volume, config.para[config.target_coin]['min_tx_volume'])
             )
             logging.info(
                 "Balance on %s: %f EUR - Balance on %s: %f BTC"
