@@ -4,8 +4,8 @@ import time
 # from arbitrage.observers.emailer import send_email
 # from arbitrage.fiatconverter import FiatConverter
 # from arbitrage import config
-from observers.observer import Observer
-from observers.emailer import send_email
+from observer import Observer
+from emailer import send_email
 from fiatconverter import FiatConverter
 import config
 
@@ -80,8 +80,8 @@ class TraderBot(Observer):
                 + " not reached %f/%f" % (volume, config.para[config.target_coin]['min_tx_volume'])
             )
             logging.warn(
-                "Balance on %s: %f USD - Balance on %s: %f BTC"
-                % (kask, self.clients[kask].usd_balance, kbid, self.clients[kbid].btc_balance)
+                "Balance on %s: %f USD - Balance on %s: %f %s"
+                % (kask, self.clients[kask].usd_balance, kbid, self.clients[kbid].btc_balance, config.target_coin)
             )
             return
         current_time = time.time()
@@ -102,6 +102,6 @@ class TraderBot(Observer):
         self, volume, kask, kbid, weighted_buyprice, weighted_sellprice, buyprice, sellprice
     ):
         self.last_trade = time.time()
-        logging.info("Buy @%s %f BTC and sell @%s" % (kask, volume, kbid))
+        logging.info("Buy @%s %f %s and sell @%s" % (kask, volume, config.target_coin, kbid))
         self.clients[kask].buy(volume, buyprice)
         self.clients[kbid].sell(volume, sellprice)

@@ -85,7 +85,7 @@ class PrivatePaymium(Market):
     def get_info(self):
         response = self._send_request(self.balance_url)
         if response:
-            self.btc_balance = response["BTC"]
+            self.btc_balance = response[config.target_coin.upper()]
             self.eur_balance = response["EUR"]
             self.usd_balance = self.fc.convert(self.eur_balance, "EUR", "USD")
 

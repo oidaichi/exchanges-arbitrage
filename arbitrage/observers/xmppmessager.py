@@ -49,7 +49,7 @@ class XmppMessager(Observer):
         if profit > config.para[config.target_coin]['profit_thresh'] \
             and perc > config.para[config.target_coin]['perc_thresh']:
             message = (
-                "profit: %f USD with volume: %f BTC - buy at %.4f (%s) sell at %.4f (%s) ~%.2f%%"
-                % (profit, volume, buyprice, kask, sellprice, kbid, perc)
+                "profit: %.2f USD with volume: %.4f %s - buy at %.4f (%s) sell at %.4f (%s) ~%.2f%%"
+                % (profit, volume, config.target_coin, buyprice, kask, sellprice, kbid, perc)
             )
             self.xmppclient.msend_message(message)

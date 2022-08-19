@@ -2,7 +2,9 @@ import logging
 import smtplib
 # from arbitrage.observers.observer import Observer
 # from arbitrage import config
-from observers.observer import Observer
+from observer import Observer
+import sys
+sys.path.append('../')
 import config
 
 
@@ -40,11 +42,12 @@ class Emailer(Observer):
     ):
         if profit > config.para[config.target_coin]['profit_thresh'] \
             and perc > config.para[config.target_coin]['perc_thresh']:
-            message = """profit: %f USD with volume: %f BTC
+            message = """profit: %.2f USD with volume: %.4f %s
 buy at %.4f (%s) sell at %.4f (%s) ~%.2f%%
 """ % (
                 profit,
                 volume,
+                config.target_coin,
                 buyprice,
                 kask,
                 sellprice,

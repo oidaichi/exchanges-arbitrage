@@ -4,6 +4,7 @@ import urllib.parse
 import json
 # from arbitrage.public_markets.market import Market
 from public_markets.market import Market
+import config
 
 
 class CEX(Market):
@@ -13,7 +14,8 @@ class CEX(Market):
         self.update_rate = 30
 
     def update_depth(self):
-        url = "https://cex.io/api/order_book/BTC/%s/" % self.code
+        coin = config.target_coin.uppder()
+        url = f"https://cex.io/api/order_book/{coin}/%s/" % self.code
         req = urllib.request.Request(
             url,
             headers={

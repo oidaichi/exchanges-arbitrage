@@ -2,7 +2,7 @@ import logging
 import json
 # from arbitrage.observers.traderbot import TraderBot
 # from arbitrage import config
-from observers.traderbot import TraderBot
+from traderbot import TraderBot
 import config
 
 class MockMarket(object):
@@ -78,5 +78,14 @@ class TraderBotSim(TraderBot):
 
 if __name__ == "__main__":
     t = TraderBotSim()
+    print("Total BTC: %f" % t.total_btc_balance())
+    print("Total USD: %f" % t.total_usd_balance())
+    t.execute_trade(0.01, 
+                    'BitFlyerUSD', 
+                    'KrakenEUR', 
+                    2222222, 
+                    2222221, 
+                    2222220, 
+                    2222219)
     print("Total BTC: %f" % t.total_btc_balance())
     print("Total USD: %f" % t.total_usd_balance())

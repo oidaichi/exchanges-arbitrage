@@ -1,6 +1,7 @@
 import logging
 # from arbitrage.observers.observer import Observer
 from observers.observer import Observer
+import config
 
 
 class DetailedLogger(Observer):
@@ -17,6 +18,6 @@ class DetailedLogger(Observer):
         weighted_sellprice,
     ):
         logging.info(
-            "profit: %f USD with volume: %f BTC - buy at %.4f (%s) sell at %.4f (%s) ~%.2f%%"
-            % (profit, volume, buyprice, kask, sellprice, kbid, perc)
+            "profit: %.2f USD with volume: %.3f %s - buy at %.4f (%s) sell at %.4f (%s) ~%.2f%%"
+            % (profit, volume, config.target_coin, buyprice, kask, sellprice, kbid, perc)
         )

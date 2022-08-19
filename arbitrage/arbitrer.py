@@ -13,6 +13,7 @@ import config
 from datetime import datetime
 from functools import wraps
 import optuna
+import pandas as pd
 
 
 def time_recorder(func):
@@ -44,9 +45,15 @@ class Arbitrer(object):
         self.init_observers(config.observers)
         self.max_tx_volume = config.para[config.target_coin]['max_tx_volume']
         self.threadpool = ThreadPoolExecutor(max_workers=10)
+        self.fee_df = pd.read_excel(r'..\docs\01_基本設計_crypto_exchanges_arbitrage.xlsx', 
+                                    sheet_name='fee', skiprows=5).set_index('取引所・通貨')
 
     def init_markets(self, markets):
         self.market_names = markets
+        if config.target_coin != 'BTC':
+            # PaymiumはBTC-EUR専門の取引所のため除外する
+            self.market_names.remove('PaymiumEUR')
+            
         for market_name in markets:
             try:
                 exec("import public_markets." + market_name.lower())
@@ -104,7 +111,9 @@ class Arbitrer(object):
 
         '''
         # ask側の方が価格が高ければ、裁定機会がないのでreturnする。
-        if self.depths[kask]["asks"][mi]["price"] >= self.depths[kbid]["bids"][mj]["price"]:
+        # if self.depths[kask]["asks"][mi]["price"] >= self.depths[kbid]["bids"][mj]["price"]:
+        if self.depths[kask]["asks"][mi]["price"] * (1 + self.fee_df.at[kask, 'taker手数料']) >= \
+            self.depths[kbid]["bids"][mj]["price"] * (1 - self.fee_df.at[kbid, 'taker手数料']):
             return 0, 0, 0, 0
 
         # 板気配とbuy側・sell側・設定した最大値から、購入する最大通貨量を求める
@@ -119,7 +128,8 @@ class Arbitrer(object):
         buy_total = 0
         w_buyprice = 0
         for i in range(mi + 1):
-            price = self.depths[kask]["asks"][i]["price"]
+            # price = self.depths[kask]["asks"][i]["price"]
+            price = self.depths[kask]["asks"][i]["price"] * (1 + self.fee_df.at[kask, 'taker手数料'])
             amount = min(max_amount, buy_total + self.depths[kask]["asks"][i]["amount"]) - buy_total
             if amount <= 0:
                 break
@@ -132,7 +142,8 @@ class Arbitrer(object):
         sell_total = 0
         w_sellprice = 0
         for j in range(mj + 1):
-            price = self.depths[kbid]["bids"][j]["price"]
+            # price = self.depths[kbid]["bids"][j]["price"]
+            price = self.depths[kbid]["bids"][j]["price"] * (1 - self.fee_df.at[kbid, 'taker手数料'])
             amount = (
                 min(max_amount, sell_total + self.depths[kbid]["bids"][j]["amount"]) - sell_total
             )
@@ -145,6 +156,8 @@ class Arbitrer(object):
                 w_sellprice = (w_sellprice * (sell_total - amount) + price * amount) / sell_total
 
         profit = sell_total * w_sellprice - buy_total * w_buyprice
+        # profit = (sell_total * w_sellprice) * (1 - self.fee_df.at[kbid, 'taker手数料']) - \
+        #     (buy_total * w_buyprice) * (1 + self.fee_df.at[kask, 'taker手数料'])
         return profit, sell_total, w_buyprice, w_sellprice
     
     
@@ -181,7 +194,9 @@ class Arbitrer(object):
             mj = trial.suggest_int('mj', 0, maxj)
             
             # ask側の方が価格が高ければ、裁定機会がないのでreturnする。
-            if self.depths[kask]["asks"][mi]["price"] >= self.depths[kbid]["bids"][mj]["price"]:
+            # if self.depths[kask]["asks"][mi]["price"] >= self.depths[kbid]["bids"][mj]["price"]:
+            if self.depths[kask]["asks"][mi]["price"] * (1 + self.fee_df.at[kask, 'taker手数料']) >= \
+                self.depths[kbid]["bids"][mj]["price"] * (1 - self.fee_df.at[kbid, 'taker手数料']):
                 return 0
             
             # 板気配とbuy側・sell側・設定した最大値から、購入する最大通貨量を求める
@@ -196,7 +211,8 @@ class Arbitrer(object):
             buy_total = 0
             w_buyprice = 0
             for i in range(mi + 1):
-                price = self.depths[kask]["asks"][i]["price"]
+                # price = self.depths[kask]["asks"][i]["price"]
+                price = self.depths[kask]["asks"][i]["price"] * (1 + self.fee_df.at[kask, 'taker手数料'])
                 amount = min(max_amount, buy_total + self.depths[kask]["asks"][i]["amount"]) - buy_total
                 if amount <= 0:
                     break
@@ -209,7 +225,8 @@ class Arbitrer(object):
             sell_total = 0
             w_sellprice = 0
             for j in range(mj + 1):
-                price = self.depths[kbid]["bids"][j]["price"]
+                # price = self.depths[kbid]["bids"][j]["price"]
+                price = self.depths[kbid]["bids"][j]["price"] * (1 - self.fee_df.at[kbid, 'taker手数料'])
                 amount = (
                     min(max_amount, sell_total + self.depths[kbid]["bids"][j]["amount"]) - sell_total
                 )
@@ -222,6 +239,8 @@ class Arbitrer(object):
                     w_sellprice = (w_sellprice * (sell_total - amount) + price * amount) / sell_total
     
             profit = sell_total * w_sellprice - buy_total * w_buyprice
+            # profit = (sell_total * w_sellprice) * (1 - self.fee_df.at[kbid, 'taker手数料']) - \
+            #     (buy_total * w_buyprice) * (1 + self.fee_df.at[kask, 'taker手数料'])
             return profit
         
         return objective
@@ -253,7 +272,8 @@ class Arbitrer(object):
         if len(self.depths[kbid]["bids"]) != 0 and len(self.depths[kask]["asks"]) != 0:
             # asks、bids共にインデックスが若いほうが価格が安い。
             # asksの何番目のインデックスまでbidsより安いかを調べる。
-            while self.depths[kask]["asks"][i]["price"] < self.depths[kbid]["bids"][0]["price"]:
+            while self.depths[kask]["asks"][i]["price"] * (1 + self.fee_df.at[kask, 'taker手数料']) < \
+                self.depths[kbid]["bids"][0]["price"] * (1 - self.fee_df.at[kbid, 'taker手数料']) :
                 # カウンタがask側の板に出ている注文数より多くなったら終了。
                 if i >= len(self.depths[kask]["asks"]) - 1:
                     break
@@ -261,7 +281,8 @@ class Arbitrer(object):
         j = 0
         if len(self.depths[kask]["asks"]) != 0 and len(self.depths[kbid]["bids"]) != 0:
             # bidsの何番目までasksよりも価格が高いかを調べる。
-            while self.depths[kask]["asks"][0]["price"] < self.depths[kbid]["bids"][j]["price"]:
+            while self.depths[kask]["asks"][0]["price"] * (1 + self.fee_df.at[kask, 'taker手数料']) < \
+                self.depths[kbid]["bids"][j]["price"] * (1 - self.fee_df.at[kbid, 'taker手数料']):
                 if j >= len(self.depths[kbid]["bids"]) - 1:
                     break
                 j += 1
@@ -302,7 +323,7 @@ class Arbitrer(object):
         best_i, best_j = (0, 0)
         best_w_buyprice, best_w_sellprice = (0, 0)
         best_volume = 0
-        print('maxi:', maxi, 'maxj:', maxj)
+        # print('maxi:', maxi, 'maxj:', maxj)
         if (maxi+1) * (maxj+1) < 1000:
             for i in range(maxi + 1):
                 for j in range(maxj + 1):
@@ -320,17 +341,19 @@ class Arbitrer(object):
             study =  optuna.create_study(direction="maximize")
             # 最適化の実行
             study.optimize(self.get_profit_for_optuna(maxi, maxj, kask, kbid), n_trials=300)
-            print('study.best_params:', study.best_params)
+            # print('study.best_params:', study.best_params)
             best_i, best_j = study.best_params['mi'], study.best_params['mj']
             best_profit, best_volume, best_w_buyprice, best_w_sellprice = \
                 self.get_profit_for(best_i, best_j, kask, kbid)
             
-        print('best_i:', best_i, 'best_j:', best_j)
+        # print('best_i:', best_i, 'best_j:', best_j)
         return (
             best_profit,
             best_volume,
-            self.depths[kask]["asks"][best_i]["price"],
-            self.depths[kbid]["bids"][best_j]["price"],
+            # self.depths[kask]["asks"][best_i]["price"],
+            # self.depths[kbid]["bids"][best_j]["price"],
+            self.depths[kask]["asks"][best_i]["price"] * (1 + self.fee_df.at[kask, 'taker手数料']),
+            self.depths[kbid]["bids"][best_j]["price"] * (1 - self.fee_df.at[kbid, 'taker手数料']),
             best_w_buyprice,
             best_w_sellprice,
         )
@@ -358,13 +381,17 @@ class Arbitrer(object):
         returnはないが、observer.opportunity()に求めた変数を格納して終える。
 
         '''
-        perc = (bid["price"] - ask["price"]) / bid["price"] * 100
+        # perc = (bid["price"] - ask["price"]) / bid["price"] * 100
         profit, volume, buyprice, sellprice, weighted_buyprice, weighted_sellprice = self.arbitrage_depth_opportunity(
             kask, kbid
         )
         if volume == 0 or buyprice == 0:
             return
+        
         perc2 = (1 - (volume - (profit / buyprice)) / volume) * 100
+        if perc2 < config.para[config.target_coin]['perc_thresh']:
+            return
+        
         for observer in self.observers:
             observer.opportunity(
                 profit,
@@ -426,7 +453,9 @@ class Arbitrer(object):
                     and len(market1["asks"]) > 0
                     and len(market2["bids"]) > 0
                 ):
-                    if float(market1["asks"][0]["price"]) < float(market2["bids"][0]["price"]):
+                    # if float(market1["asks"][0]["price"]) < float(market2["bids"][0]["price"]):
+                    if float(market1["asks"][0]["price"]) * (1 + self.fee_df.at[kmarket1, 'taker手数料']) < \
+                        float(market2["bids"][0]["price"] * (1 - self.fee_df.at[kmarket2, 'taker手数料'])):
                         self.arbitrage_opportunity(
                             kmarket1, market1["asks"][0], kmarket2, market2["bids"][0]
                         )
