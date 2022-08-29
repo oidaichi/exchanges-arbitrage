@@ -14,7 +14,7 @@ class CEX(Market):
         self.update_rate = 30
 
     def update_depth(self):
-        coin = config.target_coin.uppder()
+        coin = config.target_coin.upper()
         url = f"https://cex.io/api/order_book/{coin}/%s/" % self.code
         req = urllib.request.Request(
             url,

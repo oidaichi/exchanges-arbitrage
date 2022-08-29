@@ -128,8 +128,8 @@ class Arbitrer(object):
         buy_total = 0
         w_buyprice = 0
         for i in range(mi + 1):
-            # price = self.depths[kask]["asks"][i]["price"]
-            price = self.depths[kask]["asks"][i]["price"] * (1 + self.fee_df.at[kask, 'taker手数料'])
+            price = self.depths[kask]["asks"][i]["price"]
+            # price = self.depths[kask]["asks"][i]["price"] * (1 + self.fee_df.at[kask, 'taker手数料'])
             amount = min(max_amount, buy_total + self.depths[kask]["asks"][i]["amount"]) - buy_total
             if amount <= 0:
                 break
@@ -142,8 +142,8 @@ class Arbitrer(object):
         sell_total = 0
         w_sellprice = 0
         for j in range(mj + 1):
-            # price = self.depths[kbid]["bids"][j]["price"]
-            price = self.depths[kbid]["bids"][j]["price"] * (1 - self.fee_df.at[kbid, 'taker手数料'])
+            price = self.depths[kbid]["bids"][j]["price"]
+            # price = self.depths[kbid]["bids"][j]["price"] * (1 - self.fee_df.at[kbid, 'taker手数料'])
             amount = (
                 min(max_amount, sell_total + self.depths[kbid]["bids"][j]["amount"]) - sell_total
             )
@@ -155,9 +155,9 @@ class Arbitrer(object):
             else:
                 w_sellprice = (w_sellprice * (sell_total - amount) + price * amount) / sell_total
 
-        profit = sell_total * w_sellprice - buy_total * w_buyprice
-        # profit = (sell_total * w_sellprice) * (1 - self.fee_df.at[kbid, 'taker手数料']) - \
-        #     (buy_total * w_buyprice) * (1 + self.fee_df.at[kask, 'taker手数料'])
+        # profit = sell_total * w_sellprice - buy_total * w_buyprice
+        profit = sell_total * (w_sellprice * (1 - self.fee_df.at[kbid, 'taker手数料'])) - \
+                 buy_total * (w_buyprice * (1 + self.fee_df.at[kask, 'taker手数料']))
         return profit, sell_total, w_buyprice, w_sellprice
     
     
@@ -211,8 +211,8 @@ class Arbitrer(object):
             buy_total = 0
             w_buyprice = 0
             for i in range(mi + 1):
-                # price = self.depths[kask]["asks"][i]["price"]
-                price = self.depths[kask]["asks"][i]["price"] * (1 + self.fee_df.at[kask, 'taker手数料'])
+                price = self.depths[kask]["asks"][i]["price"]
+                # price = self.depths[kask]["asks"][i]["price"] * (1 + self.fee_df.at[kask, 'taker手数料'])
                 amount = min(max_amount, buy_total + self.depths[kask]["asks"][i]["amount"]) - buy_total
                 if amount <= 0:
                     break
@@ -225,8 +225,8 @@ class Arbitrer(object):
             sell_total = 0
             w_sellprice = 0
             for j in range(mj + 1):
-                # price = self.depths[kbid]["bids"][j]["price"]
-                price = self.depths[kbid]["bids"][j]["price"] * (1 - self.fee_df.at[kbid, 'taker手数料'])
+                price = self.depths[kbid]["bids"][j]["price"]
+                # price = self.depths[kbid]["bids"][j]["price"] * (1 - self.fee_df.at[kbid, 'taker手数料'])
                 amount = (
                     min(max_amount, sell_total + self.depths[kbid]["bids"][j]["amount"]) - sell_total
                 )
@@ -238,9 +238,9 @@ class Arbitrer(object):
                 else:
                     w_sellprice = (w_sellprice * (sell_total - amount) + price * amount) / sell_total
     
-            profit = sell_total * w_sellprice - buy_total * w_buyprice
-            # profit = (sell_total * w_sellprice) * (1 - self.fee_df.at[kbid, 'taker手数料']) - \
-            #     (buy_total * w_buyprice) * (1 + self.fee_df.at[kask, 'taker手数料'])
+            # profit = sell_total * w_sellprice - buy_total * w_buyprice
+            profit = sell_total * w_sellprice * (1 - self.fee_df.at[kbid, 'taker手数料']) - \
+                     buy_total * w_buyprice * (1 + self.fee_df.at[kask, 'taker手数料'])
             return profit
         
         return objective
@@ -336,9 +336,11 @@ class Arbitrer(object):
                         best_i, best_j = (i, j)
                         best_w_buyprice, best_w_sellprice = (w_buyprice, w_sellprice)
         else:
+            # print('optuna calculation start')
             optuna.logging.set_verbosity(optuna.logging.WARNING)
             # 最適化の条件設定
             study =  optuna.create_study(direction="maximize")
+            # print('optuna calculating now.')
             # 最適化の実行
             study.optimize(self.get_profit_for_optuna(maxi, maxj, kask, kbid), n_trials=300)
             # print('study.best_params:', study.best_params)
@@ -350,10 +352,9 @@ class Arbitrer(object):
         return (
             best_profit,
             best_volume,
-            # self.depths[kask]["asks"][best_i]["price"],
-            # self.depths[kbid]["bids"][best_j]["price"],
-            self.depths[kask]["asks"][best_i]["price"] * (1 + self.fee_df.at[kask, 'taker手数料']),
-            self.depths[kbid]["bids"][best_j]["price"] * (1 - self.fee_df.at[kbid, 'taker手数料']),
+            # 利益を計算するときは手数料を加味し、実際にトレードする価格は手数料を除いた金額にする。
+            self.depths[kask]["asks"][best_i]["price"],
+            self.depths[kbid]["bids"][best_j]["price"],
             best_w_buyprice,
             best_w_sellprice,
         )
@@ -468,4 +469,5 @@ class Arbitrer(object):
             self.depths = self.update_depths()
             self.tickers()
             self.tick()
+            print('time.sleep(config.refresh_rate):', config.refresh_rate)
             time.sleep(config.refresh_rate)

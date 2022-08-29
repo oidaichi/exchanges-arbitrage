@@ -2,7 +2,7 @@ import logging
 import smtplib
 # from arbitrage.observers.observer import Observer
 # from arbitrage import config
-from observer import Observer
+from observers.observer import Observer
 import sys
 sys.path.append('../')
 import config

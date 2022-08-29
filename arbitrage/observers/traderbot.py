@@ -4,18 +4,42 @@ import time
 # from arbitrage.observers.emailer import send_email
 # from arbitrage.fiatconverter import FiatConverter
 # from arbitrage import config
-from observer import Observer
-from emailer import send_email
+# import sys
+# sys.path.append('../')
+from observers.observer import Observer
+from observers.emailer import send_email
 from fiatconverter import FiatConverter
 import config
 
+        
+def init_clients(self, markets):
+    self.market_names = markets
+    self.clients = {}
+    if config.target_coin != 'BTC':
+        # PaymiumはBTC-EUR専門の取引所のため除外する
+        self.market_names.remove('PaymiumEUR')
+        
+    for market_name in markets:
+        try:
+            exec("import public_markets." + market_name.lower())
+            market = eval(
+                "public_markets." + market_name.lower() + "." + market_name + "()"
+            )
+            self.clients[market_name] = market
+        except (ImportError, AttributeError) as e:
+            print(
+                "%s market name is invalid: Ignored (you should check your config file)"
+                % (market_name)
+            )
+            
 
 class TraderBot(Observer):
     def __init__(self):
-        self.clients = {
-            # TODO: move that to the config file
-            # "BitstampUSD": bitstampusd.PrivateBitstampUSD(),
-        }
+        # self.clients = {
+        #     # TODO: move that to the config file
+        #     # "BitstampUSD": bitstampusd.PrivateBitstampUSD(),
+        # }
+        init_clients(self, config.markets)
         self.fc = FiatConverter()
         self.trade_wait = 120  # in seconds
         self.last_trade = 0
